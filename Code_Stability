@@ -1,0 +1,73 @@
+import numpy as np
+import skfuzzy as fuzz
+from skfuzzy import control as ctrl
+import matplotlib.pyplot as plt
+
+# New Antecedent/Consequent objects hold universe variables and membership functions
+input_variable = ctrl.Antecedent(np.arange(0, 101, 1), 'input')
+output_variable = ctrl.Consequent(np.arange(0, 101, 1), 'output')
+
+# Auto-membership function population
+input_variable.automf(names=['low', 'medium', 'high'])
+output_variable.automf(names=['low', 'medium', 'high'])
+
+# Customized fuzzy rules
+rule1 = ctrl.Rule(input_variable['low'], output_variable['low'])
+rule2 = ctrl.Rule(input_variable['medium'], output_variable['medium'])
+rule3 = ctrl.Rule(input_variable['high'], output_variable['high'])
+
+# Create control system
+system = ctrl.ControlSystem([rule1, rule2, rule3])
+simulation = ctrl.ControlSystemSimulation(system)
+
+# Number of iterations and range of input values
+iterations = 100
+input_range = (0, 100)
+perturbation_range = (-10, 10)  # Range for perturbation values
+
+# Lists to store input, output, and perturbation values
+input_values = []
+output_values = []
+perturbation_timings = []
+
+# Run the system for multiple iterations with random input values
+for i in range(iterations):
+    # Generate random input value within the range
+    input_value = np.random.uniform(input_range[0], input_range[1])
+    input_values.append(input_value)
+
+    # Set the input value and compute the system
+    simulation.input['input'] = input_value
+    simulation.compute()
+
+    # Get the crisp output value
+    output_value = simulation.output['output']
+    output_values.append(output_value)
+
+    # Introduce perturbations to the input value and compute the system
+    perturbation = np.random.uniform(perturbation_range[0], perturbation_range[1])
+    perturbed_input_value = input_value + perturbation
+    simulation.input['input'] = perturbed_input_value
+    simulation.compute()
+
+    # Get the perturbed output value
+    perturbed_output_value = simulation.output['output']
+    perturbation_timings.append((i, perturbed_input_value, perturbation))
+
+    print("Iteration: {}, Input: {:.2f}, Output: {:.2f}, Perturbed Input: {:.2f}, Perturbed Output: {:.2f}".format(
+        i, input_value, output_value, perturbed_input_value, perturbed_output_value))
+
+# Plot input and output values
+plt.plot(input_values, label='Input')
+plt.plot(output_values, label='Output')
+plt.xlabel('Iteration')
+plt.ylabel('Value')
+
+# Plot perturbation timings
+plt.scatter([], [], color='red', marker='o', label='Perturbation')  # Empty scatter plot for legend
+for timing in perturbation_timings:
+    iteration, perturbed_input, perturbation = timing
+    plt.scatter(iteration, perturbed_input, color='red', marker='o')
+
+plt.legend()
+plt.show()
